@@ -113,11 +113,15 @@ static inline void wdt_disable(void) {
   REG(ESP32_TIMERGROUP1)[18] = 0;  // Disable task WDT
 }
 
+
+//RTC_CNTL_CLK_CONF_REG 70
+
 static inline void cpu_freq_240(void) {
   // TRM 3.2.3. We must set SEL_0 = 1, SEL_1 = 2
   // *SEL_0: The vaule of register RTC_CNTL_SOC_CLK_SEL
   // *SEL_1: The vaule of register CPU_CPUPERIOD_SEL
   REG(ESP32_RTCCNTL)[28] |= 1UL << 27;  // Register 31.24  SEL0 -> 1
+//DPORT_CPU_PER_CONF_REG 3c
   REG(ESP32_DPORT)[15] |= 2UL << 0;     // Register 5.9    SEL1 -> 2
   REG(ESP32_UART0)[5] = 0x4001e0;       // UART_CLKDIV_REG
 }

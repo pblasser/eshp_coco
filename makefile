@@ -12,7 +12,7 @@ LINKFLAGS   = -Tlink.ld -nostdlib -nostartfiles -Wl,--gc-sections $(EXTRA_LINKFL
 CWD         = $(realpath $(CURDIR))
 FLASH_ADDR  = 0x1000  # 2nd stage bootloader flash offset
 TOOLCHAIN   =  xtensa-esp32-elf
-SRCS        = $(MDK)/$(ARCH)/boot.c $(SOURCES)
+SRCS        = boot.c $(SOURCES)
 
 build: $(PROG).bin
 
