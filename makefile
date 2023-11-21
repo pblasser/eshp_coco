@@ -16,6 +16,27 @@ SRCS        = boot.c $(SOURCES)
 
 build: $(PROG).bin
 
+%:
+	$(TOOLCHAIN)-gcc  $(CFLAGS) $@.c boot.c $(LINKFLAGS) -o $@.elf
+	$(ESPUTIL) mkbin $@.elf $@.bin
+	$(ESPUTIL) flash $(FLASH_ADDR) $@.bin
+	sudo tio /dev/ttyUSB0
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+		
 $(PROG).elf: $(SRCS)
 	$(TOOLCHAIN)-gcc  $(CFLAGS) $(SRCS) $(LINKFLAGS) -o $@
 #	$(TOOLCHAIN)-size $@

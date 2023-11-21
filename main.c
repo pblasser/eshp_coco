@@ -1,72 +1,7 @@
 #include <mdk.h>
 
-//static int led_pin = LED1;  // To override: make EXTRA_CFLAGS=-DLED1=5
-//static int led_state = 0;
-
-#define ESP32_SENS_SAR_DAC_CTRL1  0x3ff48898
-#define ESP32_SENS_SAR_DAC_CTRL2  0x3ff4889C
-#define ESP32_RTCIO_PAD_DAC1 0x3ff48484
-#define ESP32_RTCIO_PAD_DAC2 0x3ff48488
-#define ESP32_RTCIO_ADC_PAD 0x3ff48480
-#define ESP32_SENS_SAR_READ_CTRL2 0x3ff48890
-#define ESP32_SENS_SAR_MEAS_START2 0x3ff48894
-
-#define ESP32_SENS_SAR_READ_CTRL1 0x3ff48800
-#define ESP32_SENS_SAR_MEAS_START1 0x3ff48854
-
-#define DR_REG_SENS_BASE                        0x3ff48800
-#define SENS_SAR_READ_CTRL_REG          (DR_REG_SENS_BASE + 0x0000)
-#define SENS_SAR_READ_STATUS1_REG          (DR_REG_SENS_BASE + 0x0004)
-#define SENS_SAR_MEAS_WAIT1_REG          (DR_REG_SENS_BASE + 0x0008)
-#define SENS_SAR_MEAS_WAIT2_REG          (DR_REG_SENS_BASE + 0x000c)
-#define SENS_SAR_MEAS_CTRL_REG          (DR_REG_SENS_BASE + 0x0010)
-#define SENS_SAR_READ_STATUS2_REG          (DR_REG_SENS_BASE + 0x0014)
-#define SENS_SAR_START_FORCE_REG          (DR_REG_SENS_BASE + 0x002c)
-#define SENS_SAR_ATTEN1_REG          (DR_REG_SENS_BASE + 0x0034)
-#define SENS_SAR_ATTEN2_REG          (DR_REG_SENS_BASE + 0x0038)
-#define SENS_SAR_MEAS_START1_REG          (DR_REG_SENS_BASE + 0x0054)
-#define SENS_SAR_TOUCH_CTRL1_REG          (DR_REG_SENS_BASE + 0x0058)
-#define SENS_SAR_TOUCH_CTRL2_REG          (DR_REG_SENS_BASE + 0x0084)
-#define SENS_SAR_TOUCH_ENABLE_REG          (DR_REG_SENS_BASE + 0x008c)
-#define SENS_SAR_READ_CTRL2_REG          (DR_REG_SENS_BASE + 0x0090)
-#define SENS_SAR_MEAS_START2_REG          (DR_REG_SENS_BASE + 0x0094)
-#define SENS_SAR_MEAS_CTRL2_REG          (DR_REG_SENS_BASE + 0x0a0)
-
-#define DR_REG_SYSCON_BASE 0x3ff66000 //0x60002600
-#define APB_CTRL_SYSCLK_CONF_REG (DR_REG_SYSCON_BASE + 0x0)
-#define APB_SARADC_CTRL_REG (DR_REG_SYSCON_BASE + 0x10)
-#define APB_SARADC_CTRL2_REG (DR_REG_SYSCON_BASE + 0x14)
-#define APB_SARADC_FSM_REG (DR_REG_SYSCON_BASE + 0x18)
-#define APB_SARADC_SAR1_PATT_TAB1_REG (DR_REG_SYSCON_BASE + 0x1C)
-#define APB_SARADC_SAR2_PATT_TAB1_REG (DR_REG_SYSCON_BASE + 0x2C)
 
 
-
-#define I2S_FIFO_WR_REG 0x3FF4F000
-#define I2S_FIFO_RD_REG 0x3FF4F004 
-#define I2S_CONF_REG 0x3FF4F008 
-#define I2S_INT_RAW_REG 0x3FF4F00C
-#define I2S_INT_ENA_REG 0x3FF4F014
-#define I2S_CONF1_REG 0x3FF4F0A0
-#define I2S_PD_CONF_REG 0x3FF4F0A4
-#define I2S_CONF2_REG 0x3FF4F0A8
-#define I2S_CLKM_CONF_REG 0x3FF4F0AC
-#define I2S_STATE_REG 0x3FF4F0BC
-#define I2S_TIMING_REG 0x3FF4F01C 
-#define I2S_FIFO_CONF_REG 0x3FF4F020 
-#define I2S_CONF_SINGLE_DATA_REG 0x3FF4F028
-#define I2S_LC_HUNG_CONF_REG 0x3FF4F074
-
-
-#define DPORT_PERIP_CLK_EN_REG 0x3FF000C0
-#define DPORT_WIFI_CLK_EN_REG 0x3FF000CC
-#define DPORT_PRO_GPIO_INTERRUPT_MAP_REG 0x3FF0015C
-#define GPIO_PIN_REG 0x3FF44088
-#define IO_MUX_GPIO16_REG 0x3FF4904C
-#define GPIO_STATUS_REG 0x3FF44044
-#define GPIO_STATUS_W1TC_REG 0x3FF4404C
-extern  void ets_isr_unmask(uint32_t mask);
-extern  void xtos_set_interrupt_handler(int irq_number, void(*function)(void));
 #define delaysiz (1<<18)
 static uint8_t delaybuff[delaysiz];
 static int delayptr;
@@ -127,11 +62,16 @@ printf("dportperip%08x\n",(int)REG(DPORT_PERIP_CLK_EN_REG)[0]);
 
 
 #define RTC_CNTL_ANA_CONF_REG 0x3FF48030 
+#define RTC_CNTL_CLK_CONF_REG 0x3FF48070
 //  printf("rtcana%08x\n",(int)REG(RTC_CNTL_ANA_CONF_REG)[0]);
 //  REG(RTC_CNTL_ANA_CONF_REG)[0]|=BIT(24);
 //REG(RTC_CNTL_ANA_CONF_REG)[0]&= ~BIT(23);
 //printf("rtcana%08x\n",(int)REG(RTC_CNTL_ANA_CONF_REG)[0]);
 
+  printf("rtcana%08x\n",(int)REG(RTC_CNTL_CLK_CONF_REG)[0]);
+  REG(RTC_CNTL_CLK_CONF_REG)[0]|=BIT(29)|BIT(26)|BIT(7)|BIT(31);
+//REG(RTC_CNTL_ANA_CONF_REG)[0]&= ~BIT(23);
+printf("rtcana%08x\n",(int)REG(RTC_CNTL_CLK_CONF_REG)[0]);
 
 
 
@@ -146,14 +86,14 @@ printf("dportperip%08x\n",(int)REG(DPORT_PERIP_CLK_EN_REG)[0]);
   printf("i2sfifoconf%08x\n",(int)REG(I2S_FIFO_CONF_REG)[0]);
 
   //REG(I2S_CONF_REG)[0]=BIT(5)
-//REG(I2S_CONF_REG)[0]=BIT(5)|BIT(1);
+ //REG(I2S_CONF_REG)[0]=BIT(5)|BIT(1);
 REG(I2S_CONF_REG)[0]=0x30;
   printf("i2sconf%08x\n",(int)REG(I2S_CONF_REG)[0]);
 
 
-  REG(SENS_SAR_READ_CTRL_REG)[0] |= BIT(27)|BIT(28)|130; //dig force inv
+  REG(SENS_SAR_READ_CTRL_REG)[0] |= BIT(27)|BIT(28); //dig force inv
   printf("sarreadctrl%08x\n",(int)REG(SENS_SAR_READ_CTRL_REG)[0]);
-  REG(SENS_SAR_READ_CTRL2_REG)[0] |= BIT(28)|BIT(29)|130; //dig force inv
+  REG(SENS_SAR_READ_CTRL2_REG)[0] |= BIT(28)|BIT(29); //dig force inv
   //REG(SENS_SAR_READ_CTRL_REG)[0] |= BIT(28); //dig force inv
   //REG(SENS_SAR_READ_CTRL2_REG)[0] |= BIT(29); //dig force inv
   printf("sarreadctrl2%08x\n",(int)REG(SENS_SAR_READ_CTRL2_REG)[0]);
@@ -206,7 +146,7 @@ void digHandler() {
 //printf("holyinterruptus 17\n");
   if (r & BIT(16)){
   //printf("holyinterruptus16 %08x\n",(int)r);
-   printf("fifo%08x sarmeas%08x i2sc2%08x i2sc%08x saradcctrl%08x raw%08x\n",(int)rrr[0],(int)rr[0],(int)REG(I2S_CONF2_REG)[0],(int)REG(I2S_CONF_REG)[0],(int)REG(APB_SARADC_CTRL_REG)[0],(int)REG(I2S_INT_RAW_REG)[0]);
+   printf("fifo%08x sarmeas%08x i2sc2%08x i2sc%08x saradcctrl%08x raw%08x\n",(int)rrr[0],(int)rr[0],(int)REG(I2S_CONF2_REG)[0],(int)REG(I2S_CONF_REG)[0],(int)REG(APB_SARADC_CTRL_REG)[0],delayptr);//(int)REG(I2S_INT_RAW_REG)[0]);
    i++;
     REG(ESP32_RTCIO_PAD_DAC1)[0] = BIT(10) | BIT(17) | BIT(18) |  ((i&0xFF)<<19);
     REG(ESP32_RTCIO_PAD_DAC2)[0] =  BIT(10) | BIT(17) | BIT(18) |  ((i&0xFF)<<19);
@@ -217,9 +157,9 @@ void digHandler() {
     REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19)|BIT(17);
 //REG(I2S_CONF2_REG)[0]=BIT(5); //lcd5 extadc6
     REG(I2S_LC_HUNG_CONF_REG)[0]=0x10;
-  REG(APB_SARADC_CTRL_REG)[0]|=BIT(1)|BIT(0)|BIT(23)|BIT(24);//2324clearpointer
-  REG(APB_SARADC_CTRL_REG)[0]&= ~(BIT(1)|BIT(0));
-  REG(APB_SARADC_CTRL_REG)[0]|=BIT(1)|BIT(0)|BIT(2);
+  //REG(APB_SARADC_CTRL_REG)[0]|=BIT(1)|BIT(0)|BIT(23)|BIT(24);//2324clearpointer
+  //REG(APB_SARADC_CTRL_REG)[0]&= ~(BIT(1)|BIT(0));
+  //REG(APB_SARADC_CTRL_REG)[0]|=BIT(1)|BIT(0)|BIT(2);
 
     
   REG(I2S_CONF_REG)[0]=BIT(5);//1 is rx reset, 5 is rxstart
@@ -236,25 +176,35 @@ void rtcHandler() {
   uint32_t r = REG(GPIO_STATUS_REG)[0];
   REG(GPIO_STATUS_W1TC_REG)[0]=0xFFFFFFFF; 
   r=BIT(16);
-  volatile uint32_t *rrr = REG(ESP32_SENS_SAR_MEAS_START1);
-  volatile uint32_t *rr = REG(ESP32_SENS_SAR_MEAS_START2);
-  delaybuff[delayptr]=(uint8_t)(rr[0]>>4);
+  // volatile uint32_t *rrr = REG(ESP32_SENS_SAR_MEAS_START1);
+  
+ // uint32_t cur=0;
+  uint32_t pos  = 0;
+  //bool pr = false; 
   delayptr++;
   if (delayptr>=delaysiz) delayptr=0;
   if (r & BIT(17)){printf("holyinterruptus17 %08x\n",(int)r);}
-//printf("holyinterruptus 17\n");
-  if (r & BIT(16)){
-  //printf("holyinterruptus16 %08x\n",(int)r);
-      printf("holyadc%08x %08x %08x\n",(int)rrr[0],(int)rr[0],delayptr);
+  if (r & BIT(16)){  
     i++;
+    volatile uint32_t *rr = REG(ESP32_SENS_SAR_MEAS_START2);
+    //printf("h%08x %08x\n",(int)rr[0],delayptr);
+    if (rr[0]&BIT(16)) {               
+     REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19); //pin g4
+     REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19)|BIT(17);
+     delaybuff[delayptr]=(uint8_t)(rr[0]>>4);
+     //cur = rr[0];
+     pos++;
+     //pr=true;
+
+    }  
+    if((delayptr%100)==0) printf("h%08x %08x\n",(int)rr[0],delayptr);
+                         
     REG(ESP32_RTCIO_PAD_DAC1)[0] = BIT(10) | BIT(17) | BIT(18) |  ((i&0xFF)<<19);
     REG(ESP32_RTCIO_PAD_DAC2)[0] =  BIT(10) | BIT(17) | BIT(18) |  ((i&0xFF)<<19);
   }
   
-   REG(ESP32_SENS_SAR_MEAS_START1)[0]=BIT(18)|BIT(31)|BIT(19+6); //pin 34
-    REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19); //pin g4
-    REG(ESP32_SENS_SAR_MEAS_START1)[0]=BIT(18)|BIT(31)|BIT(19+6)|BIT(17);
-    REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19)|BIT(17);
+//   REG(ESP32_SENS_SAR_MEAS_START1)[0]=BIT(18)|BIT(31)|BIT(19+6); //pin 34
+// REG(ESP32_SENS_SAR_MEAS_START1)[0]=BIT(18)|BIT(31)|BIT(19+6)|BIT(17);
    
 }
 
@@ -300,6 +250,10 @@ void initRTC() {
 //for sar2 that is
  // REG(ESP32_RTCIO_ADC_PAD)[0] = BIT(28)|BIT(18)|
   //    BIT(29)|BIT(27)|BIT(26)|BIT(23);
+   REG(ESP32_SENS_SAR_MEAS_START1)[0]=BIT(18)|BIT(31)|BIT(19+6); //pin 34
+    REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19); //pin g4
+    REG(ESP32_SENS_SAR_MEAS_START1)[0]=BIT(18)|BIT(31)|BIT(19+6)|BIT(17);
+    REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19)|BIT(17);
 
 }
 
@@ -327,9 +281,9 @@ int main(void) {
   REG(IO_MUX_GPIO16_REG)[0]=BIT(9)|BIT(8); //input enable16
   REG(IO_MUX_GPIO16_REG)[1]=BIT(9)|BIT(8); //input enable17
   for (;;) {
-    digHandler();
-    delay_us(10);                   // Delay a bit
+    //rtcHandler();
+//    delay_us(10);                   // Delay a bit
   }
 
   return 0;
-} 
+}  
