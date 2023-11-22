@@ -70,11 +70,15 @@
 #define I2S_CONF_SINGLE_DATA_REG 0x3FF4F028
 #define I2S_LC_HUNG_CONF_REG 0x3FF4F074
 
+//CALL REGS AS REGS AND NOT IF NOT
 
 #define DPORT_PERIP_CLK_EN_REG 0x3FF000C0
 #define DPORT_WIFI_CLK_EN_REG 0x3FF000CC
 #define DPORT_PRO_GPIO_INTERRUPT_MAP_REG 0x3FF0015C
 #define GPIO_PIN_REG 0x3FF44088
+#define IO_MUX_GPIO2_REG 0x3FF49040
+#define IO_MUX_GPIO12ISH_REG 0x3FF49030
+#define IO_MUX_GPIO16_REG 0x3FF4904C
 #define IO_MUX_GPIO16_REG 0x3FF4904C
 #define GPIO_STATUS_REG 0x3FF44044
 #define GPIO_STATUS_W1TC_REG 0x3FF4404C
@@ -256,77 +260,4 @@ static inline bool gpio_read(int pin) {
   return r[0] & BIT(pin) ? 1 : 0;
 }
 
-// API SPI
 
-struct spi {
-  int miso, mosi, clk, cs;  // Pins
-  int spin;                 // Number of NOP spins for bitbanging
-};
-
-static inline void spi_begin(struct spi *spi) {
-  gpio_write(spi->cs, 0);
-}
-
-static inline void spi_end(struct spi *spi) {
-  gpio_write(spi->cs, 1);
-}
-
-static inline bool spi_init(struct spi *spi) {
-  if (spi->miso < 0 || spi->mosi < 0 || spi->clk < 0) return false;
-  gpio_input(spi->miso);
-  gpio_output(spi->mosi);
-  gpio_output(spi->clk);
-  if (spi->cs >= 0) {
-    gpio_output(spi->cs);
-    gpio_write(spi->cs, 1);
-  }
-  return true;
-}
-
-// Send a byte, and return a received byte
-static inline unsigned char spi_txn(struct spi *spi, unsigned char tx) {
-  unsigned count = spi->spin <= 0 ? 9 : (unsigned) spi->spin;
-  unsigned char rx = 0;
-  for (int i = 0; i < 8; i++) {
-    gpio_write(spi->mosi, tx & 0x80);   // Set mosi
-    spin(count);                        // Wait half cycle
-    gpio_write(spi->clk, 1);            // Clock high
-    rx = (unsigned char) (rx << 1);     // "rx <<= 1" gives warning??
-    if (gpio_read(spi->miso)) rx |= 1;  // Read miso
-    spin(count);                        // Wait half cycle
-    gpio_write(spi->clk, 0);            // Clock low
-    tx = (unsigned char) (tx << 1);     // Again, avoid warning
-  }
-  return rx;  // Return the received byte
-}
-
-// API UART
-
-static inline void uart_write(int no, uint8_t c) {
-  extern int uart_tx_one_char(int);
-  if (no == 0) (void) uart_tx_one_char(c);
-}
-
-// API WS2812
-static inline void ws2812_show(int pin, const uint8_t *buf, size_t len) {
-  unsigned long delays[2] = {2, 6};
-  for (size_t i = 0; i < len; i++) {
-    for (uint8_t mask = 0x80; mask; mask >>= 1) {
-      int i1 = buf[i] & mask ? 1 : 0, i2 = i1 ^ 1;  // This takes some cycles
-      gpio_write(pin, 1);
-      spin(delays[i1]);
-      gpio_write(pin, 0);
-      spin(delays[i2]);
-    }
-  }
-}
-
-// Default settings for board peripherals
-
-#ifndef LED1
-#define LED1 2  // Default LED pin
-#endif
-
-#ifndef BTN1
-#define BTN1 9  // Default user button pin
-#endif

@@ -4,42 +4,32 @@
 #define delaysiz (1<<18)
 static uint8_t delaybuff[delaysiz];
 static int delayptr;
-  int i = 0;
-
 
 void rtcHandler() {
   uint32_t r = REG(GPIO_STATUS_REG)[0];
   REG(GPIO_STATUS_W1TC_REG)[0]=0xFFFFFFFF; 
-  r=BIT(16);
-  // volatile uint32_t *rrr = REG(ESP32_SENS_SAR_MEAS_START1);
-  
- // uint32_t cur=0;
-  uint32_t pos  = 0;
-  //bool pr = false; 
-  //delayptr++;
-  if (delayptr>=delaysiz) delayptr=0;
-  if (r & BIT(17)){printf("holyinterruptus17 %08x\n",(int)r);}
-  if (r & BIT(16)){  
-    i++;
+  //r=BIT(2);
+
+  if (r & BIT(2)){  
     volatile uint32_t *rr = REG(ESP32_SENS_SAR_MEAS_START2);
-    //printf("h%08x %08x\n",(int)rr[0],delayptr);
-    if (rr[0]&BIT(16)) {               
+    uint32_t rdrr = REG(ESP32_SENS_SAR_MEAS_START1)[0];
+    uint32_t rdr = rr[0];
+    if(rdr&BIT(16)) {               
      REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19); //pin g4
      REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19)|BIT(17);
-     delaybuff[delayptr++]=(uint8_t)(rr[0]>>4);
-     //cur = rr[0];
-     pos++;
-     //pr=true;
-
+     delayptr++;
+     if (delayptr>=delaysiz) delayptr=0;
+     GPIO_OUT_REG[0]=(uint32_t)(delayptr<<12);
+     delaybuff[delayptr]=(uint8_t)(rr[0]>>4);
     }  
-    if((delayptr%400)==0) printf("h%08x %08x\n",(int)rr[0],delayptr);
+    if((delayptr%400)==0) printf("h%08x %08x %08x\n",(int)rdr,(int)rdrr,delayptr);
                          
     REG(ESP32_RTCIO_PAD_DAC1)[0] = BIT(10) | BIT(17) | BIT(18) |  ((delayptr&0xFF)<<19);
-    REG(ESP32_RTCIO_PAD_DAC2)[0] =  BIT(10) | BIT(17) | BIT(18) |  ((i&0xFF)<<19);
+    REG(ESP32_RTCIO_PAD_DAC2)[0] =  BIT(10) | BIT(17) | BIT(18) |  ((delayptr&0xFF)<<19);
   }
   
-//   REG(ESP32_SENS_SAR_MEAS_START1)[0]=BIT(18)|BIT(31)|BIT(19+6); //pin 34
-// REG(ESP32_SENS_SAR_MEAS_START1)[0]=BIT(18)|BIT(31)|BIT(19+6)|BIT(17);
+   REG(ESP32_SENS_SAR_MEAS_START1)[0]=BIT(18)|BIT(31)|BIT(19+6); //pin 34
+   REG(ESP32_SENS_SAR_MEAS_START1)[0]=BIT(18)|BIT(31)|BIT(19+6)|BIT(17);
 
 }
 
@@ -87,14 +77,39 @@ int main(void) {
   REG(ESP32_SENS_SAR_DAC_CTRL1)[0] = 0x0; 
   REG(ESP32_SENS_SAR_DAC_CTRL2)[0] = 0x0; 
   initRTC();
+
+  //function 2 on the 12 block
+  REG(IO_MUX_GPIO12ISH_REG)[0]=BIT(13);
+  REG(IO_MUX_GPIO12ISH_REG)[1]=BIT(13);
+  REG(IO_MUX_GPIO12ISH_REG)[2]=BIT(13);
+  REG(IO_MUX_GPIO12ISH_REG)[3]=BIT(13);
+  //straight out
+  GPIO_FUNC_OUT_SEL_CFG_REG[12]=256;
+  GPIO_FUNC_OUT_SEL_CFG_REG[13]=256;
+  GPIO_FUNC_OUT_SEL_CFG_REG[14]=256;
+  GPIO_FUNC_OUT_SEL_CFG_REG[15]=256;
+  GPIO_FUNC_OUT_SEL_CFG_REG[16]=256;
+  GPIO_FUNC_OUT_SEL_CFG_REG[17]=256;
+  GPIO_FUNC_OUT_SEL_CFG_REG[18]=256;
+  GPIO_FUNC_OUT_SEL_CFG_REG[19]=256;
+  GPIO_FUNC_OUT_SEL_CFG_REG[21]=256;
+  GPIO_FUNC_OUT_SEL_CFG_REG[22]=256;
+  GPIO_FUNC_OUT_SEL_CFG_REG[23]=256;
+  GPIO_FUNC_OUT_SEL_CFG_REG[27]=256;
+  REG(GPIO_ENABLE_REG)[0]=0|BIT(12)|BIT(13)
+  |BIT(14)|BIT(15)|BIT(16)|BIT(17)|BIT(18)
+  |BIT(19)|BIT(21)|BIT(22)|BIT(23)|BIT(27);
+  
   xtos_set_interrupt_handler(0,rtcHandler);
- REG(GPIO_ENABLE_REG)[0]=0;
-  ets_isr_unmask(1u << 0);
+  ets_isr_unmask(1u << 0); 
   REG(DPORT_PRO_GPIO_INTERRUPT_MAP_REG)[0]=0;
-  REG(GPIO_PIN_REG)[16]=BIT(15)|BIT(8)|BIT(8); //7risingedge 8falling) 15prointerrupt 13appinterrup
-  REG(GPIO_PIN_REG)[17]=BIT(15)|BIT(8)|BIT(8); //7risingedge 15prointerrupt 13appinterrup
-  REG(IO_MUX_GPIO16_REG)[0]=BIT(9)|BIT(8); //input enable16
-  REG(IO_MUX_GPIO16_REG)[1]=BIT(9)|BIT(8); //input enable17
+  REG(GPIO_PIN_REG)[2]=BIT(15)|BIT(8)|BIT(8);
+  //7risingedge 8falling) 15prointerrupt 13appinterrup
+  //REG(GPIO_PIN_REG)[16]=BIT(15)|BIT(8)|BIT(8); 
+  //REG(GPIO_PIN_REG)[17]=BIT(15)|BIT(8)|BIT(8); /
+  REG(IO_MUX_GPIO2_REG)[0]=BIT(9)|BIT(8); //input enable
+  //REG(IO_MUX_GPIO16_REG)[0]=BIT(9)|BIT(8); //input enable16
+  //REG(IO_MUX_GPIO16_REG)[1]=BIT(9)|BIT(8); //input enable17
   for (;;) { }
   return 0;
 }  
