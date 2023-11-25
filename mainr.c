@@ -1,31 +1,42 @@
 #include <mdk.h>
 
 
-#define delaysiz (1<<18)
+//#define delaysiz (1<<18)
+#define delaysiz (1<<8)
 static uint8_t delaybuff[delaysiz];
-static int delayptr;
+static uint32_t delayptr=0;
+uint8_t del;
+uint8_t dell;
 
 void rtcHandler() {
   uint32_t r = REG(GPIO_STATUS_REG)[0];
   REG(GPIO_STATUS_W1TC_REG)[0]=0xFFFFFFFF; 
   //r=BIT(2);
+  //uint8_t delia=0;
+  uint8_t *delptr=delaybuff;
 
   if (r & BIT(2)){  
     volatile uint32_t *rr = REG(ESP32_SENS_SAR_MEAS_START2);
-    uint32_t rdrr = REG(ESP32_SENS_SAR_MEAS_START1)[0];
+    //uint32_t rdrr = REG(ESP32_SENS_SAR_MEAS_START1)[0];
     uint32_t rdr = rr[0];
     if(rdr&BIT(16)) {               
      REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19); //pin g4
      REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19)|BIT(17);
      delayptr++;
-     if (delayptr>=delaysiz) delayptr=0;
+     delayptr=delayptr&0xFFFF;
+     //if (delayptr>=delaysiz) delayptr=0;
      GPIO_OUT_REG[0]=(uint32_t)(delayptr<<12);
-     delaybuff[delayptr]=(uint8_t)(rr[0]>>4);
+     
+     
+     dell = delptr[delayptr];
+     //REG(ESP32_RTCIO_PAD_DAC2)[0] =  BIT(10) | BIT(17) | BIT(18) |  ((del&0xFF)<<19);
+     delaybuff[delayptr]=(uint8_t)(rdr>>4);
+     dell = delaybuff[delayptr];
     }  
-    if((delayptr%400)==0) printf("h%08x %08x %08x\n",(int)rdr,(int)rdrr,delayptr);
+    if((delayptr%400)==0) printf("h%08x %08x %08x\n",(int)rdr,(int)dell,(int)delayptr);
                          
     REG(ESP32_RTCIO_PAD_DAC1)[0] = BIT(10) | BIT(17) | BIT(18) |  ((delayptr&0xFF)<<19);
-    REG(ESP32_RTCIO_PAD_DAC2)[0] =  BIT(10) | BIT(17) | BIT(18) |  ((delayptr&0xFF)<<19);
+    //REG(ESP32_RTCIO_PAD_DAC2)[0] =  BIT(10) | BIT(17) | BIT(18) |  ((delayptr&0xFF)<<19);
   }
   
    REG(ESP32_SENS_SAR_MEAS_START1)[0]=BIT(18)|BIT(31)|BIT(19+6); //pin 34
@@ -35,6 +46,7 @@ void rtcHandler() {
 
 
 void initRTC() {
+  for (int i=0; i<delaysiz; i++) delaybuff[i]=0;
   REG(SENS_SAR_READ_CTRL_REG)[0] |= BIT(28); //inverse data is normal
   REG(SENS_SAR_READ_CTRL2_REG)[0] |= BIT(29); //inv
   REG(SENS_SAR_MEAS_START1_REG)[0] |= BIT(31); //pad force
@@ -43,7 +55,7 @@ void initRTC() {
   REG(SENS_SAR_MEAS_START2_REG)[0] |= BIT(18);
 
   //REG(SENS_SAR_ATTEN1_REG)[0] = 0x0;
-  //REG(SENS_SAR_ATTEN2_REG)[0] = 0x0;4 IO_MUX and GPIO Matrix (GPIO, IO_MUX)
+  REG(SENS_SAR_ATTEN2_REG)[0] = 0x1;//4 IO_MUX and GPIO Matrix (GPIO, IO_MUX)
   //REG(SENS_SAR_MEAS_WAIT2_REG)[0] &= ~((uint32_t)3<<18); //clear force xpd 
   REG(SENS_SAR_MEAS_WAIT2_REG)[0] |= (2<<16);//powerdiwb forx xpdamp0
 //wait2 0x00220001
