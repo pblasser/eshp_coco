@@ -16,6 +16,10 @@ SRCS        = boot.c $(SOURCES)
 
 build: $(PROG).bin
 
+
+tio:	
+	sudo tio /dev/ttyUSB0
+
 %:
 	$(TOOLCHAIN)-gcc  $(CFLAGS) $@.c boot.c $(LINKFLAGS) -o $@.elf
 	$(ESPUTIL) mkbin $@.elf $@.bin

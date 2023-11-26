@@ -2,8 +2,9 @@
 
 
 //#define delaysiz (1<<18)
-#define delaysiz (1<<8)
+#define delaysiz (1<<17)
 static uint8_t delaybuff[delaysiz];
+uint8_t *delptr=delaybuff; 
 static uint32_t delayptr=0;
 uint8_t del;
 uint8_t dell;
@@ -13,7 +14,7 @@ void rtcHandler() {
   REG(GPIO_STATUS_W1TC_REG)[0]=0xFFFFFFFF; 
   //r=BIT(2);
   //uint8_t delia=0;
-  uint8_t *delptr=delaybuff;
+  
 
   if (r & BIT(2)){  
     volatile uint32_t *rr = REG(ESP32_SENS_SAR_MEAS_START2);
@@ -23,17 +24,18 @@ void rtcHandler() {
      REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19); //pin g4
      REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19)|BIT(17);
      delayptr++;
-     delayptr=delayptr&0xFFFF;
+     delayptr=delayptr&0x1FFFF;
      //if (delayptr>=delaysiz) delayptr=0;
      GPIO_OUT_REG[0]=(uint32_t)(delayptr<<12);
      
      
      dell = delptr[delayptr];
-     //REG(ESP32_RTCIO_PAD_DAC2)[0] =  BIT(10) | BIT(17) | BIT(18) |  ((del&0xFF)<<19);
-     delaybuff[delayptr]=(uint8_t)(rdr>>4);
-     dell = delaybuff[delayptr];
+     REG(ESP32_RTCIO_PAD_DAC2)[0] =  BIT(10) | BIT(17) | BIT(18) |  ((dell&0xFF)<<19);
+     delptr[delayptr]=(uint8_t)(rdr>>4);
+     //dell = delaybuff[delayptr];
     }  
-    if((delayptr%400)==0) printf("h%08x %08x %08x\n",(int)rdr,(int)dell,(int)delayptr);
+  
+    if((delayptr%400)==0) printf("h%08x %08x %08x %08x\n",(int)rdr,(int)dell,(int)delayptr,(int)GPIO_IN1_REG[0]);
                          
     REG(ESP32_RTCIO_PAD_DAC1)[0] = BIT(10) | BIT(17) | BIT(18) |  ((delayptr&0xFF)<<19);
     //REG(ESP32_RTCIO_PAD_DAC2)[0] =  BIT(10) | BIT(17) | BIT(18) |  ((delayptr&0xFF)<<19);
@@ -46,7 +48,9 @@ void rtcHandler() {
 
 
 void initRTC() {
-  for (int i=0; i<delaysiz; i++) delaybuff[i]=0;
+
+  //delptr=malloc(1<<17);
+ // for (int i=0; i<delaysiz; i++) delaybuff[i]=0;
   REG(SENS_SAR_READ_CTRL_REG)[0] |= BIT(28); //inverse data is normal
   REG(SENS_SAR_READ_CTRL2_REG)[0] |= BIT(29); //inv
   REG(SENS_SAR_MEAS_START1_REG)[0] |= BIT(31); //pad force
@@ -60,16 +64,16 @@ void initRTC() {
   REG(SENS_SAR_MEAS_WAIT2_REG)[0] |= (2<<16);//powerdiwb forx xpdamp0
 //wait2 0x00220001
   //REG(SENS_SAR_MEAS_CTRL_REG)[0] &= ~((uint32_t)0xFFFF<<0); //clear fsm
-  //REG(SENS_SAR_MEAS_CTRL_REG)[0] &= ~((uint32_t)0xFFF<<4); //clear fsm truly
+  REG(SENS_SAR_MEAS_CTRL_REG)[0] &= ~((uint32_t)0xFFF<<4); //clear fsm truly
 //0707 0000
- // REG(SENS_SAR_MEAS_CTRL_REG)[0] = 0x073F0380;
-  //NNsar2xpdwait Nsarrstbfsm Nxpdsarfsm 
+// REG(SENS_SAR_MEAS_CTRL_REG)[0] = 0x073F0380;
+  //NNsar2xpdwait             Nsarrstbfsm Nxpdsarfsm 
   //Nampshortgnd Nampshortref Namprstfb Nxpdsarampfsm
 //try different fsm
 //https://github.com/krzychb/esp32-lna/blob/master/components/lna/lna.c
   REG(SENS_SAR_MEAS_WAIT1_REG)[0] = 0x00010001;
   REG(SENS_SAR_MEAS_WAIT2_REG)[0] &= ~((uint32_t)0xFFFF);
-  REG(SENS_SAR_MEAS_WAIT2_REG)[0] |= 0x1;
+  REG(SENS_SAR_MEAS_WAIT2_REG)[0] |= 0x1;//|BIT(17)|BIT(19);
 
   REG(SENS_SAR_TOUCH_ENABLE_REG)[0] = 0; //touch pads off
 
@@ -84,7 +88,7 @@ void initRTC() {
     REG(ESP32_SENS_SAR_MEAS_START1)[0]=BIT(18)|BIT(31)|BIT(19+6)|BIT(17);
     REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19)|BIT(17);
 }
-
+ 
 int main(void) {
   REG(ESP32_SENS_SAR_DAC_CTRL1)[0] = 0x0; 
   REG(ESP32_SENS_SAR_DAC_CTRL2)[0] = 0x0; 
@@ -112,16 +116,18 @@ int main(void) {
   |BIT(14)|BIT(15)|BIT(16)|BIT(17)|BIT(18)
   |BIT(19)|BIT(21)|BIT(22)|BIT(23)|BIT(27);
   
+  //36 and 39
+  REG(GPIO_ENABLE_REG)[3]=0;
+  REG(IO_MUX_GPIO36_REG)[0]=BIT(9)|BIT(8); //input enable
+  REG(IO_MUX_GPIO36_REG)[3]=BIT(9)|BIT(8); //input enable
+  
+  
   xtos_set_interrupt_handler(0,rtcHandler);
   ets_isr_unmask(1u << 0); 
   REG(DPORT_PRO_GPIO_INTERRUPT_MAP_REG)[0]=0;
   REG(GPIO_PIN_REG)[2]=BIT(15)|BIT(8)|BIT(8);
   //7risingedge 8falling) 15prointerrupt 13appinterrup
-  //REG(GPIO_PIN_REG)[16]=BIT(15)|BIT(8)|BIT(8); 
-  //REG(GPIO_PIN_REG)[17]=BIT(15)|BIT(8)|BIT(8); /
   REG(IO_MUX_GPIO2_REG)[0]=BIT(9)|BIT(8); //input enable
-  //REG(IO_MUX_GPIO16_REG)[0]=BIT(9)|BIT(8); //input enable16
-  //REG(IO_MUX_GPIO16_REG)[1]=BIT(9)|BIT(8); //input enable17
   for (;;) { }
   return 0;
 }  
