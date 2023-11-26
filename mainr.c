@@ -23,9 +23,9 @@ void rtcHandler() {
     //uint32_t rdrr = REG(ESP32_SENS_SAR_MEAS_START1)[0];
     uint32_t rdr = rr[0];
     if(rdr&BIT(16)) {       
-    del = 0;        
-     REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19); //pin g4
+    REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19); //pin g4
      REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19)|BIT(17);
+    } //moved from whole phrase to just adc trigger
      if (GPIO_IN1_REG[0]&0x80) delayptr++;
      else delayptr--;
      delayptr=delayptr&0x1FFFF;
@@ -38,8 +38,8 @@ void rtcHandler() {
      REG(ESP32_RTCIO_PAD_DAC1)[0] = BIT(10) | BIT(17) | BIT(18) |  ((REG(RNG_REG)[0]&0xFF)<<19);
      if (~GPIO_IN1_REG[0]&0x8) delptr[delayptr]=(uint8_t)(rdr>>4);
      //dell = delaybuff[delayptr];
-    }  
-    del++;
+    //}  
+    //del++;
     //if((delayptr%400)==0) printf("h%08x %08x %08x %08x\n",(int)rdr,(int)dell,(int)del,(int)GPIO_IN1_REG[0]);
                          
     
