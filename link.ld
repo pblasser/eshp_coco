@@ -52,6 +52,9 @@ SECTIONS {
   */
 }
 
+
+
+PROVIDE ( malloc = 0x4000bea0 );
 /* See .ld files in $IDF_PATH/components/esp_rom */
 PROVIDE(uart_rx_one_char = 0x400092d0);
 PROVIDE(uart_tx_one_char = 0x40009200);

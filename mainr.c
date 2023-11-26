@@ -6,8 +6,9 @@
 static uint8_t delaybuff[delaysiz];
 uint8_t *delptr=delaybuff; 
 static uint32_t delayptr=0;
-uint8_t del;
+uint8_t del=0;
 uint8_t dell;
+#define RNG_REG 0x3FF75144
 
 void rtcHandler() {
   uint32_t r = REG(GPIO_STATUS_REG)[0];
@@ -17,13 +18,16 @@ void rtcHandler() {
   
 
   if (r & BIT(2)){  
+    
     volatile uint32_t *rr = REG(ESP32_SENS_SAR_MEAS_START2);
     //uint32_t rdrr = REG(ESP32_SENS_SAR_MEAS_START1)[0];
     uint32_t rdr = rr[0];
-    if(rdr&BIT(16)) {               
+    if(rdr&BIT(16)) {       
+    del = 0;        
      REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19); //pin g4
      REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19)|BIT(17);
-     delayptr++;
+     if (GPIO_IN1_REG[0]&0x80) delayptr++;
+     else delayptr--;
      delayptr=delayptr&0x1FFFF;
      //if (delayptr>=delaysiz) delayptr=0;
      GPIO_OUT_REG[0]=(uint32_t)(delayptr<<12);
@@ -31,13 +35,14 @@ void rtcHandler() {
      
      dell = delptr[delayptr];
      REG(ESP32_RTCIO_PAD_DAC2)[0] =  BIT(10) | BIT(17) | BIT(18) |  ((dell&0xFF)<<19);
-     delptr[delayptr]=(uint8_t)(rdr>>4);
+     REG(ESP32_RTCIO_PAD_DAC1)[0] = BIT(10) | BIT(17) | BIT(18) |  ((REG(RNG_REG)[0]&0xFF)<<19);
+     if (~GPIO_IN1_REG[0]&0x8) delptr[delayptr]=(uint8_t)(rdr>>4);
      //dell = delaybuff[delayptr];
     }  
-  
-    if((delayptr%400)==0) printf("h%08x %08x %08x %08x\n",(int)rdr,(int)dell,(int)delayptr,(int)GPIO_IN1_REG[0]);
+    del++;
+    //if((delayptr%400)==0) printf("h%08x %08x %08x %08x\n",(int)rdr,(int)dell,(int)del,(int)GPIO_IN1_REG[0]);
                          
-    REG(ESP32_RTCIO_PAD_DAC1)[0] = BIT(10) | BIT(17) | BIT(18) |  ((delayptr&0xFF)<<19);
+    
     //REG(ESP32_RTCIO_PAD_DAC2)[0] =  BIT(10) | BIT(17) | BIT(18) |  ((delayptr&0xFF)<<19);
   }
   
@@ -49,7 +54,7 @@ void rtcHandler() {
 
 void initRTC() {
 
-  //delptr=malloc(1<<17);
+  //delptr=malloc(1<<16);
  // for (int i=0; i<delaysiz; i++) delaybuff[i]=0;
   REG(SENS_SAR_READ_CTRL_REG)[0] |= BIT(28); //inverse data is normal
   REG(SENS_SAR_READ_CTRL2_REG)[0] |= BIT(29); //inv
@@ -120,6 +125,7 @@ int main(void) {
   REG(GPIO_ENABLE_REG)[3]=0;
   REG(IO_MUX_GPIO36_REG)[0]=BIT(9)|BIT(8); //input enable
   REG(IO_MUX_GPIO36_REG)[3]=BIT(9)|BIT(8); //input enable
+  REG(IO_MUX_GPIO34_REG)[1]=BIT(9)|BIT(8); //input enable
   
   
   xtos_set_interrupt_handler(0,rtcHandler);
