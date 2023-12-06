@@ -90,7 +90,6 @@
 #define I2S_INLINK_DSCR_BF1_REG 0x3FF4F050
 
 
-
 #define I2S_RXEOF_NUM_REG 0x3FF4F024
 #define I2S_IN_LINK_REG 0x3FF4F034
 #define I2S_INLINK_DSCR_REG 0x3FF4F048
@@ -176,7 +175,26 @@ extern  void xtos_set_interrupt_handler(int irq_number, void(*function)(void));
 
 
 
-
+#define CHANG(reg, val) \
+ preval = (int)REG(reg)[0]; \
+ REG(reg)[0] = (val); \
+ printf("%s %08x--->%08x\n",#reg,preval,(int)REG(reg)[0]); 
+ 
+#define CHANGOR(reg, val) \
+ preval = (int)REG(reg)[0]; \
+ REG(reg)[0] |= (val); \
+ printf("%s %08x--->%08x\n",#reg,preval,(int)REG(reg)[0]); 
+ 
+#define CHANGNO(reg, val) \
+ preval = (int)REG(reg)[0]; \
+ REG(reg)[0] &= ~(uint32_t)(val); \
+ printf("%s %08x--->%08x\n",#reg,preval,(int)REG(reg)[0]); 
+ 
+#define CHANGNOR(reg, val) \
+ preval = (int)REG(reg)[0]; \
+ REG(reg)[0] |= (val); \
+ REG(reg)[0] &= ~(uint32_t)(val); \
+ printf("%s %08x-%08x->%08x\n",#reg,preval,(int)(preval|(int)(val)),(int)REG(reg)[0]); 
 
 // Perform `count` "NOP" operations
 static inline void spin(volatile unsigned long count) {
@@ -286,5 +304,6 @@ static inline bool gpio_read(int pin) {
   if (pin > 31) pin -= 31, r = GPIO_IN1_REG;
   return r[0] & BIT(pin) ? 1 : 0;
 }
+
 
 
