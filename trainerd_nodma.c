@@ -22,7 +22,7 @@ void printR();
 #define CLKDIVMAGIC ((2)<<7)
 #define BCKMAGIC 8<<6
 #define CLKMAGIC 8
-
+uint32_t akkuval;
 
 void digHandler() {
  //uint32_t r = REG(GPIO_STATUS_REG)[0];
@@ -30,7 +30,8 @@ void digHandler() {
  //if (r & BIT(2)){  
  REG(I2S_CONF_REG)[0] &= ~(BIT(5)); //start rx
   volatile uint32_t *rr = REG(I2S_FIFO_RD_REG);
-  uint32_t rdr = rr[0];
+  akkuval += rr[0];
+  akkuval = akkuval >> 1;
   REG(I2S_CONF_REG)[0] |= (BIT(5)); //start rx
    //REG(I2S_CONF_REG)[0] |= (BIT(1)); //start rx
    //REG(I2S_CONF_REG)[0] &= ~(BIT(1)); //start rx
@@ -42,7 +43,7 @@ void digHandler() {
   dell = delptr[delayptr];
   REG(ESP32_RTCIO_PAD_DAC2)[0] =  BIT(10) | BIT(17) | BIT(18) |  ((dell&0xFF)<<19);
   REG(ESP32_RTCIO_PAD_DAC1)[0] = BIT(10) | BIT(17) | BIT(18) |  ((REG(RNG_REG)[0]&0xFF)<<19);
-  delptr[delayptr]=(uint8_t)(rdr>>4);
+  delptr[delayptr]=(uint8_t)(akkuval>>4);
   
 
      //REG(I2S_INT_CLR_REG)[0]=0xFFFFFFFF;
