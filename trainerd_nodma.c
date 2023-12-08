@@ -8,6 +8,8 @@ uint8_t *delptr=delaybuff;
 static uint16_t dmabuff[300];
 static uint32_t dmall[3];
 static int delayptr;
+static int delayskp;
+static int lastskp;
 uint8_t dell;
   int preval;
 void prr(const char * c, uint32_t r)  {
@@ -15,42 +17,76 @@ void prr(const char * c, uint32_t r)  {
 }
 
 void printR();
-#define FSMAGIC 0x0250FF08;
+#define FSMAGIC 0x0405FF08;
 //try ff50ff08
  //timekeep-1 startwait5 standbywait100 rstbwait8
 // 2 16 FF 08
 #define CLKDIVMAGIC ((2)<<7)
-#define BCKMAGIC 8<<6
-#define CLKMAGIC 8
+
+
+
+#define BCKMAGIC 4<<6
+#define CLKMAGIC 4
 uint32_t akkuval;
 
 void digHandler() {
  //uint32_t r = REG(GPIO_STATUS_REG)[0];
  REG(GPIO_STATUS_W1TC_REG)[0]=0xFFFFFFFF;
  //if (r & BIT(2)){  
- REG(I2S_CONF_REG)[0] &= ~(BIT(5)); //start rx
+ 
+ 
+REG(I2S_CONF_REG)[0] &= ~(BIT(5)); 
+ 
+ 
+ 
+ 
   volatile uint32_t *rr = REG(I2S_FIFO_RD_REG);
   akkuval += rr[0];
   akkuval = akkuval >> 1;
-  REG(I2S_CONF_REG)[0] |= (BIT(5)); //start rx
+ // akkuval = rr[0];
+  
+  
+
+ 
+ //start rx
+    // REG(I2S_CONF_REG)[0] |= (BIT(1)); //start r
+    //  REG(I2S_CONF_REG)[0] &= ~(BIT(1)); //start rx
+  //REG(I2S_CONF_REG)[0] |= (BIT(5)); //start rx
+
+ 
+
+
+ 
+ 
    //REG(I2S_CONF_REG)[0] |= (BIT(1)); //start rx
    //REG(I2S_CONF_REG)[0] &= ~(BIT(1)); //start rx
+
+  
   if (GPIO_IN1_REG[0]&0x80) delayptr++;
   else delayptr--;
   delayptr=delayptr&0x1FFFF;
+  
+  if (GPIO_IN1_REG[0]&0x10)  {
+   if (lastskp==0) delayskp = delayptr;
+   lastskp = 1;
+  } else {
+   if (lastskp) delayptr=delayskp;
+   lastskp = 0;
+  } 
+  
+  
   GPIO_OUT_REG[0]=(uint32_t)(delayptr<<12);
   //if (~GPIO_IN1_REG[0]&0x8)  
   dell = delptr[delayptr];
-  REG(ESP32_RTCIO_PAD_DAC2)[0] =  BIT(10) | BIT(17) | BIT(18) |  ((dell&0xFF)<<19);
-  REG(ESP32_RTCIO_PAD_DAC1)[0] = BIT(10) | BIT(17) | BIT(18) |  ((REG(RNG_REG)[0]&0xFF)<<19);
   delptr[delayptr]=(uint8_t)(akkuval>>4);
   
+  REG(ESP32_RTCIO_PAD_DAC2)[0] =  BIT(10) | BIT(17) | BIT(18) |  ((dell&0xFF)<<19);
+  REG(ESP32_RTCIO_PAD_DAC1)[0] = BIT(10) | BIT(17) | BIT(18) |  ((REG(RNG_REG)[0]&0xFF)<<19);
 
      //REG(I2S_INT_CLR_REG)[0]=0xFFFFFFFF;
-     
-     
-  //     REG(I2S_CONF_REG)[0] |= (BIT(1)); //start rx
-   //REG(I2S_CONF_REG)[0] &= ~(BIT(1)); //start rx
+
+
+   REG(I2S_CONF_REG)[0] |= (BIT(5)); //start rx
  //}
 }
 
@@ -82,12 +118,13 @@ void initDIG() {
   CHANGNOR(DPORT_PERIP_RST_EN_REG,BIT(4))
   //ADC POWER ALWAYS ON
   CHANGNO(SENS_SAR_MEAS_CTRL_REG,(uint32_t)0xFFFF)
-  
+  CHANGNO(SENS_SAR_MEAS_CTRL_REG,(uint32_t)0x000F0000)
+
     REG(SENS_SAR_MEAS_WAIT1_REG)[0] = 0x00010001;
   
   CHANGOR(SENS_SAR_MEAS_WAIT2_REG,BIT(17)|BIT(18)|BIT(19))
   CHANGNO(SENS_SAR_MEAS_WAIT2_REG,(uint32_t)0xFFFF)
-  REG(SENS_SAR_MEAS_WAIT2_REG)[0] |= 0x2;//|BIT(17)|BIT(19);
+ REG(SENS_SAR_MEAS_WAIT2_REG)[0] |= 0x2;//|BIT(17)|BIT(19);
   
   CHANG(I2S_INT_ENA_REG,0) //disable interrupt
   CHANGNO(I2S_INT_CLR_REG,0)
